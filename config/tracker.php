@@ -12,6 +12,7 @@ return [
     ],
 
     'allowed_payment_statuses' => [
+        'pending',
         'unpaid',
         'paid',
         'failed',

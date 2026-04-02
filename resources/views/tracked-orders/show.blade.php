@@ -1,4 +1,7 @@
 <x-layouts.tracker title="Tracked Order Details" topbar-title="Tracked Order Details">
+    @php($pickup = $trackedOrder->pickup_address ?? [])
+    @php($delivery = $trackedOrder->delivery_address ?? [])
+
     <div class="page-head">
         <div>
             <div class="eyebrow">
@@ -6,7 +9,7 @@
                 Synced From Storix
             </div>
             <h1 class="page-title">Order #{{ $trackedOrder->storix_order_id }}</h1>
-            <p class="page-subtitle">Detailed tracker record, including payment refs, item snapshot, and lifecycle timestamps.</p>
+            <p class="page-subtitle">Detailed tracker record with payment references, address snapshot, and lifecycle timestamps.</p>
         </div>
 
         <div style="display:flex;gap:0.65rem;flex-wrap:wrap;">
@@ -40,16 +43,68 @@
                             <div class="detail-item-value mono">#{{ $trackedOrder->id }}</div>
                         </div>
                         <div class="detail-item">
-                            <div class="detail-item-label">Total Price</div>
+                            <div class="detail-item-label">Order Total</div>
                             <div class="detail-item-value mono">PHP {{ number_format((float) $trackedOrder->total_price, 2) }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label">Payment Method</div>
+                            <div class="detail-item-value">{{ $trackedOrder->payment_method ?: 'Not available' }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label">Payment Amount</div>
+                            <div class="detail-item-value mono">PHP {{ number_format((float) ($trackedOrder->payment_amount ?? 0), 2) }}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-item-label">Xendit Invoice</div>
                             <div class="detail-item-value">{{ $trackedOrder->xendit_invoice_id ?: 'Not available' }}</div>
                         </div>
                         <div class="detail-item">
+                            <div class="detail-item-label">Xendit Channel</div>
+                            <div class="detail-item-value">{{ $trackedOrder->xendit_payment_method ?: 'Not available' }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label">Reference ID</div>
+                            <div class="detail-item-value">{{ $trackedOrder->xendit_reference_id ?: 'Not available' }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label">Invoice URL</div>
+                            <div class="detail-item-value" style="word-break:break-word;">
+                                @if($trackedOrder->xendit_invoice_url)
+                                    <a href="{{ $trackedOrder->xendit_invoice_url }}" target="_blank" rel="noopener">Open hosted payment page</a>
+                                @else
+                                    Not available
+                                @endif
+                            </div>
+                        </div>
+                        <div class="detail-item">
                             <div class="detail-item-label">PRGC Reference</div>
                             <div class="detail-item-value">{{ $trackedOrder->prgc_ref ?: 'Not available' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title">Pickup and Delivery</div>
+                </div>
+                <div style="padding:1.1rem 1.2rem;">
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-item-label">Pickup Address</div>
+                            <div class="detail-item-value">{{ collect([$pickup['street_address'] ?? null, $pickup['barangay_name'] ?? null, $pickup['city_name'] ?? null, $pickup['province_name'] ?? null, $pickup['region_name'] ?? null])->filter()->implode(', ') ?: 'Not available' }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label">Pickup Contact</div>
+                            <div class="detail-item-value">{{ $pickup['contact_number'] ?? 'Not available' }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label">Delivery Address</div>
+                            <div class="detail-item-value">{{ collect([$delivery['street_address'] ?? null, $delivery['barangay_name'] ?? null, $delivery['city_name'] ?? null, $delivery['province_name'] ?? null, $delivery['region_name'] ?? null])->filter()->implode(', ') ?: 'Not available' }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label">Delivery Contact</div>
+                            <div class="detail-item-value">{{ $delivery['contact_number'] ?? 'Not available' }}</div>
                         </div>
                     </div>
                 </div>
@@ -111,6 +166,14 @@
                     <div class="detail-item" style="margin-bottom:0.8rem;">
                         <div class="detail-item-label">Created in Tracker</div>
                         <div class="detail-item-value">{{ $trackedOrder->created_at->format('M d, Y h:i A') }}</div>
+                    </div>
+                    <div class="detail-item" style="margin-bottom:0.8rem;">
+                        <div class="detail-item-label">Payment Paid At</div>
+                        <div class="detail-item-value">{{ $trackedOrder->payment_paid_at?->format('M d, Y h:i A') ?? 'Waiting for payment confirmation' }}</div>
+                    </div>
+                    <div class="detail-item" style="margin-bottom:0.8rem;">
+                        <div class="detail-item-label">Payment Expires At</div>
+                        <div class="detail-item-value">{{ $trackedOrder->payment_expires_at?->format('M d, Y h:i A') ?? 'No expiry received yet' }}</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-item-label">Last Tracker Update</div>

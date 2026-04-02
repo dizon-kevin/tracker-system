@@ -20,11 +20,20 @@ class TrackedOrderSyncController extends Controller
             'total_price' => ['required', 'numeric', 'min:0'],
             'items' => ['required', 'array', 'min:1'],
             'payment_status' => ['nullable', 'string', Rule::in(config('tracker.allowed_payment_statuses'))],
+            'payment_method' => ['nullable', 'string', 'max:255'],
+            'payment_amount' => ['nullable', 'numeric', 'min:0'],
             'xendit_invoice_id' => ['nullable', 'string', 'max:255'],
+            'xendit_invoice_url' => ['nullable', 'string', 'max:255'],
+            'xendit_payment_method' => ['nullable', 'string', 'max:255'],
+            'xendit_reference_id' => ['nullable', 'string', 'max:255'],
             'prgc_ref' => ['nullable', 'string', 'max:255'],
+            'pickup_address' => ['nullable', 'array'],
+            'delivery_address' => ['nullable', 'array'],
             'placed_at' => ['nullable', 'date'],
             'approved_at' => ['nullable', 'date'],
             'completed_at' => ['nullable', 'date'],
+            'payment_paid_at' => ['nullable', 'date'],
+            'payment_expires_at' => ['nullable', 'date'],
         ]);
 
         $trackedOrder = TrackedOrder::updateOrCreate(
@@ -35,11 +44,20 @@ class TrackedOrderSyncController extends Controller
                 'total_price' => $validated['total_price'],
                 'items' => $validated['items'],
                 'payment_status' => $validated['payment_status'] ?? 'unpaid',
+                'payment_method' => $validated['payment_method'] ?? null,
+                'payment_amount' => $validated['payment_amount'] ?? $validated['total_price'],
                 'xendit_invoice_id' => $validated['xendit_invoice_id'] ?? null,
+                'xendit_invoice_url' => $validated['xendit_invoice_url'] ?? null,
+                'xendit_payment_method' => $validated['xendit_payment_method'] ?? null,
+                'xendit_reference_id' => $validated['xendit_reference_id'] ?? null,
                 'prgc_ref' => $validated['prgc_ref'] ?? null,
+                'pickup_address' => $validated['pickup_address'] ?? null,
+                'delivery_address' => $validated['delivery_address'] ?? null,
                 'placed_at' => $validated['placed_at'] ?? null,
                 'approved_at' => $validated['approved_at'] ?? null,
                 'completed_at' => $validated['completed_at'] ?? null,
+                'payment_paid_at' => $validated['payment_paid_at'] ?? null,
+                'payment_expires_at' => $validated['payment_expires_at'] ?? null,
             ]
         );
 
@@ -56,10 +74,19 @@ class TrackedOrderSyncController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(config('tracker.allowed_statuses'))],
             'payment_status' => ['nullable', 'string', Rule::in(config('tracker.allowed_payment_statuses'))],
+            'payment_method' => ['nullable', 'string', 'max:255'],
+            'payment_amount' => ['nullable', 'numeric', 'min:0'],
             'approved_at' => ['nullable', 'date'],
             'completed_at' => ['nullable', 'date'],
+            'payment_paid_at' => ['nullable', 'date'],
+            'payment_expires_at' => ['nullable', 'date'],
             'xendit_invoice_id' => ['nullable', 'string', 'max:255'],
+            'xendit_invoice_url' => ['nullable', 'string', 'max:255'],
+            'xendit_payment_method' => ['nullable', 'string', 'max:255'],
+            'xendit_reference_id' => ['nullable', 'string', 'max:255'],
             'prgc_ref' => ['nullable', 'string', 'max:255'],
+            'pickup_address' => ['nullable', 'array'],
+            'delivery_address' => ['nullable', 'array'],
         ]);
 
         $trackedOrder = TrackedOrder::query()
@@ -69,10 +96,19 @@ class TrackedOrderSyncController extends Controller
         $trackedOrder->fill([
             'status' => $validated['status'],
             'payment_status' => $validated['payment_status'] ?? $trackedOrder->payment_status,
+            'payment_method' => $validated['payment_method'] ?? $trackedOrder->payment_method,
+            'payment_amount' => $validated['payment_amount'] ?? $trackedOrder->payment_amount,
             'approved_at' => $validated['approved_at'] ?? $trackedOrder->approved_at,
             'completed_at' => $validated['completed_at'] ?? $trackedOrder->completed_at,
+            'payment_paid_at' => $validated['payment_paid_at'] ?? $trackedOrder->payment_paid_at,
+            'payment_expires_at' => $validated['payment_expires_at'] ?? $trackedOrder->payment_expires_at,
             'xendit_invoice_id' => $validated['xendit_invoice_id'] ?? $trackedOrder->xendit_invoice_id,
+            'xendit_invoice_url' => $validated['xendit_invoice_url'] ?? $trackedOrder->xendit_invoice_url,
+            'xendit_payment_method' => $validated['xendit_payment_method'] ?? $trackedOrder->xendit_payment_method,
+            'xendit_reference_id' => $validated['xendit_reference_id'] ?? $trackedOrder->xendit_reference_id,
             'prgc_ref' => $validated['prgc_ref'] ?? $trackedOrder->prgc_ref,
+            'pickup_address' => $validated['pickup_address'] ?? $trackedOrder->pickup_address,
+            'delivery_address' => $validated['delivery_address'] ?? $trackedOrder->delivery_address,
         ]);
         $trackedOrder->save();
 

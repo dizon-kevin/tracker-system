@@ -25,6 +25,7 @@ class TrackedOrderController extends Controller
                     ->where('storix_order_id', 'like', "%{$search}%")
                     ->orWhere('storix_user_id', 'like', "%{$search}%")
                     ->orWhere('xendit_invoice_id', 'like', "%{$search}%")
+                    ->orWhere('payment_method', 'like', "%{$search}%")
                     ->orWhere('prgc_ref', 'like', "%{$search}%");
             });
         }
