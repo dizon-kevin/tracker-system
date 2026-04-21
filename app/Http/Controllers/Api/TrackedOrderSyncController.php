@@ -57,9 +57,7 @@ class TrackedOrderSyncController extends Controller
                 'placed_at' => $validated['placed_at'] ?? null,
                 'approved_at' => $validated['approved_at'] ?? null,
                 'completed_at' => $validated['completed_at'] ?? null,
-                'payment_paid_at' => $validated['payment_paid_at'] ?? null,
-                'payment_expires_at' => $validated['payment_expires_at'] ?? null,
-            ])
+            ]
         );
 
         return new JsonResponse([
@@ -108,9 +106,7 @@ class TrackedOrderSyncController extends Controller
             'xendit_payment_method' => $validated['xendit_payment_method'] ?? $trackedOrder->xendit_payment_method,
             'xendit_reference_id' => $validated['xendit_reference_id'] ?? $trackedOrder->xendit_reference_id,
             'prgc_ref' => $validated['prgc_ref'] ?? $trackedOrder->prgc_ref,
-            'pickup_address' => $validated['pickup_address'] ?? $trackedOrder->pickup_address,
-            'delivery_address' => $validated['delivery_address'] ?? $trackedOrder->delivery_address,
-        ], $trackedOrder));
+        ]);
         $trackedOrder->save();
 
         return new JsonResponse([
