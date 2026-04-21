@@ -15,6 +15,7 @@ return [
         'pending',
         'unpaid',
         'paid',
+        'expired',
         'failed',
         'refunded',
     ],

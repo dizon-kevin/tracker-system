@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TrackedOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -38,7 +39,7 @@ class TrackedOrderSyncController extends Controller
 
         $trackedOrder = TrackedOrder::updateOrCreate(
             ['storix_order_id' => $validated['storix_order_id']],
-            [
+            $this->normalizeTrackedOrderAttributes([
                 'storix_user_id' => $validated['storix_user_id'],
                 'status' => $validated['status'] ?? 'pending',
                 'total_price' => $validated['total_price'],
@@ -58,7 +59,7 @@ class TrackedOrderSyncController extends Controller
                 'completed_at' => $validated['completed_at'] ?? null,
                 'payment_paid_at' => $validated['payment_paid_at'] ?? null,
                 'payment_expires_at' => $validated['payment_expires_at'] ?? null,
-            ]
+            ])
         );
 
         return new JsonResponse([
@@ -93,7 +94,7 @@ class TrackedOrderSyncController extends Controller
             ->where('storix_order_id', $storix_order_id)
             ->firstOrFail();
 
-        $trackedOrder->fill([
+        $trackedOrder->fill($this->normalizeTrackedOrderAttributes([
             'status' => $validated['status'],
             'payment_status' => $validated['payment_status'] ?? $trackedOrder->payment_status,
             'payment_method' => $validated['payment_method'] ?? $trackedOrder->payment_method,
@@ -109,12 +110,82 @@ class TrackedOrderSyncController extends Controller
             'prgc_ref' => $validated['prgc_ref'] ?? $trackedOrder->prgc_ref,
             'pickup_address' => $validated['pickup_address'] ?? $trackedOrder->pickup_address,
             'delivery_address' => $validated['delivery_address'] ?? $trackedOrder->delivery_address,
-        ]);
+        ], $trackedOrder));
         $trackedOrder->save();
 
         return new JsonResponse([
             'message' => 'Tracked order status updated successfully.',
             'data' => $trackedOrder->fresh(),
         ]);
+    }
+
+    private function normalizeTrackedOrderAttributes(array $attributes, ?TrackedOrder $trackedOrder = null): array
+    {
+        if (! $this->isXenditManagedPayment($attributes, $trackedOrder)) {
+            return $attributes;
+        }
+
+        $incomingPaymentStatus = $attributes['payment_status'] ?? $trackedOrder?->payment_status ?? 'unpaid';
+        $currentPaymentStatus = $trackedOrder?->payment_status;
+
+        if ($currentPaymentStatus === 'paid' && in_array($incomingPaymentStatus, ['pending', 'unpaid', 'failed', 'expired'], true)) {
+            $attributes['payment_status'] = $currentPaymentStatus;
+            $attributes['status'] = $trackedOrder->status;
+            $attributes['approved_at'] = $trackedOrder->approved_at;
+            $attributes['payment_paid_at'] = $trackedOrder->payment_paid_at;
+
+            return $attributes;
+        }
+
+        if ($incomingPaymentStatus === 'paid') {
+            $paidAt = $this->normalizeTimestamp(
+                $attributes['payment_paid_at'] ?? $trackedOrder?->payment_paid_at ?? now()
+            );
+
+            $attributes['payment_paid_at'] = $paidAt;
+            $attributes['approved_at'] = $this->normalizeTimestamp(
+                $attributes['approved_at'] ?? $trackedOrder?->approved_at ?? $paidAt
+            );
+
+            if (! in_array($attributes['status'] ?? $trackedOrder?->status, ['processing', 'completed', 'cancelled'], true)) {
+                $attributes['status'] = 'approved';
+            }
+
+            return $attributes;
+        }
+
+        if (($attributes['status'] ?? $trackedOrder?->status) === 'approved') {
+            $attributes['status'] = 'pending';
+        }
+
+        if ($currentPaymentStatus !== 'paid') {
+            $attributes['approved_at'] = null;
+        }
+
+        return $attributes;
+    }
+
+    private function isXenditManagedPayment(array $attributes, ?TrackedOrder $trackedOrder = null): bool
+    {
+        $paymentMethod = strtolower((string) ($attributes['payment_method'] ?? $trackedOrder?->payment_method ?? ''));
+        $xenditFields = [
+            $attributes['xendit_invoice_id'] ?? $trackedOrder?->xendit_invoice_id,
+            $attributes['xendit_invoice_url'] ?? $trackedOrder?->xendit_invoice_url,
+            $attributes['xendit_payment_method'] ?? $trackedOrder?->xendit_payment_method,
+            $attributes['xendit_reference_id'] ?? $trackedOrder?->xendit_reference_id,
+        ];
+
+        return collect($xenditFields)->filter()->isNotEmpty()
+            || str_contains($paymentMethod, 'xendit')
+            || in_array($paymentMethod, ['gcash', 'maya', 'paymaya', 'qrph', 'shopeepay'], true);
+    }
+
+    private function normalizeTimestamp(mixed $value): ?Carbon
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return $value instanceof Carbon ? $value : Carbon::parse($value);
     }
 }
